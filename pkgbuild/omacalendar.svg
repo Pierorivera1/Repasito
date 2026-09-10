@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#101010"/>
+  <!-- Calendar Body -->
+  <rect x="26" y="24" width="76" height="80" rx="10" fill="#f5f1e8"/>
+  <!-- Calendar Header Bar -->
+  <path d="M26 34 a10 10 0 0 1 10 -10 h56 a10 10 0 0 1 10 10 v12 h-76 z" fill="#101010"/>
+  <!-- Binder Rings -->
+  <rect x="42" y="18" width="6" height="12" rx="3" fill="#f5f1e8"/>
+  <rect x="80" y="18" width="6" height="12" rx="3" fill="#f5f1e8"/>
+  <!-- Spaced Repetition Dots (R1, R2, R3 progression) -->
+  <circle cx="44" cy="62" r="6" fill="#101010"/>
+  <circle cx="64" cy="74" r="6" fill="#101010"/>
+  <circle cx="84" cy="86" r="6" fill="#101010"/>
+  <!-- Connection Curve / Trajectory -->
+  <path d="M44 62 Q 54 68, 64 74 T 84 86" stroke="#101010" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="3,3"/>
+</svg>

@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="Main.qml">Main.qml</file>
+        <file alias="DayStrip.qml">DayStrip.qml</file>
+        <file alias="ReviewCard.qml">ReviewCard.qml</file>
+        <file alias="AddTopicModal.qml">AddTopicModal.qml</file>
+        <file alias="EditNotesModal.qml">EditNotesModal.qml</file>
+        <file alias="fonts/iAWriterMonoS-Regular.ttf">../fonts/iAWriterMonoS-Regular.ttf</file>
+        <file alias="fonts/iAWriterMonoS-Bold.ttf">../fonts/iAWriterMonoS-Bold.ttf</file>
+    </qresource>
+</RCC>
