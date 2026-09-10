@@ -225,22 +225,33 @@ Dialog {
                 color: backend.themeMuted
             }
 
-            ScrollView {
+            Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 110
+                color: backend.darkMode ? "#121517" : "#f8f9fa"
+                border.color: backend.darkMode ? "#282c30" : "#d1d5db"
+                border.width: 1
+                radius: 4
 
-                TextArea {
-                    id: notesField
-                    placeholderText: "- [ ] Checklist items\n- Concepts to recall\n- https://reference.link"
-                    font.family: "iA Writer Mono S"
-                    font.pixelSize: 12
-                    color: backend.themeForeground
-                    wrapMode: TextEdit.Wrap
-                    selectByMouse: true
-                    background: Rectangle {
-                        color: backend.darkMode ? "#121517" : "#f8f9fa"
-                        border.color: backend.darkMode ? "#282c30" : "#d1d5db"
-                        radius: 4
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    clip: true
+
+                    TextArea {
+                        id: notesField
+                        placeholderText: "- [ ] Checklist items\n- Concepts to recall\n- https://reference.link"
+                        font.family: "iA Writer Mono S"
+                        font.pixelSize: 12
+                        color: backend.themeForeground
+                        placeholderTextColor: backend.themeMuted
+                        wrapMode: TextEdit.Wrap
+                        selectByMouse: true
+                        topPadding: 6
+                        bottomPadding: 6
+                        leftPadding: 6
+                        rightPadding: 6
+                        background: null
                     }
                 }
             }
