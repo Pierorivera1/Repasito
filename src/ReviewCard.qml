@@ -225,19 +225,25 @@ Rectangle {
                 Item { Layout.fillWidth: true }
             }
 
-            TextArea {
+            Rectangle {
                 visible: root.notesExpanded
                 Layout.fillWidth: true
-                text: itemData ? itemData.notes : ""
-                textFormat: TextEdit.MarkdownText
-                readOnly: true
-                wrapMode: TextEdit.Wrap
-                font.family: "iA Writer Mono S"
-                font.pixelSize: 12
-                color: backend.themeForeground
-                background: Rectangle {
-                    color: backend.darkMode ? "#121517" : "#f8f9fa"
-                    radius: 4
+                radius: 4
+                color: backend.darkMode ? "#121517" : "#f8f9fa"
+                border.color: backend.darkMode ? "#24282c" : "#e2e8f0"
+                border.width: 1
+                implicitHeight: notesText.implicitHeight + 16
+
+                Text {
+                    id: notesText
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    text: itemData ? itemData.notes : ""
+                    textFormat: Text.MarkdownText
+                    wrapMode: Text.WordWrap
+                    font.family: "iA Writer Mono S"
+                    font.pixelSize: 12
+                    color: backend.themeForeground
                 }
             }
         }
