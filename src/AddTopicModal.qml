@@ -79,7 +79,6 @@ Dialog {
                 id: titleField
                 objectName: "titleField"
                 Layout.fillWidth: true
-                placeholderText: "e.g. Docker Volume Drivers, Ch. 4"
                 font.family: "iA Writer Mono S"
                 font.pixelSize: 14
                 color: backend.themeForeground
