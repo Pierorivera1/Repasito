@@ -938,9 +938,24 @@ void TestOmacalendar::testQmlUiComponentsAndShortcuts() {
 
     // 4b. Test notesField keybindings: Shift+Return (newline) vs Return (schedule review)
     QObject *titleField = addTopicModal->findChild<QObject *>(QStringLiteral("titleField"));
+    QObject *dateField = addTopicModal->findChild<QObject *>(QStringLiteral("dateField"));
     QObject *notesField = addTopicModal->findChild<QObject *>(QStringLiteral("notesField"));
     QVERIFY(titleField);
+    QVERIFY(dateField);
     QVERIFY(notesField);
+
+    // Verify Tab skips dateField/Today/Yesterday and goes directly from titleField to notesField
+    QVERIFY(titleField->property("activeFocus").toBool());
+    QKeyEvent tabEvent(QEvent::KeyPress, Qt::Key_Tab, Qt::NoModifier);
+    QCoreApplication::sendEvent(titleField, &tabEvent);
+    QCOMPARE(notesField->property("activeFocus").toBool(), true);
+    QCOMPARE(dateField->property("activeFocus").toBool(), false);
+
+    // Verify Shift+Tab returns directly from notesField to titleField
+    QKeyEvent backtabEvent(QEvent::KeyPress, Qt::Key_Backtab, Qt::ShiftModifier);
+    QCoreApplication::sendEvent(notesField, &backtabEvent);
+    QCOMPARE(titleField->property("activeFocus").toBool(), true);
+    QCOMPARE(dateField->property("activeFocus").toBool(), false);
 
     titleField->setProperty("text", QStringLiteral("Keybinding Topic"));
     notesField->setProperty("text", QStringLiteral("Line 1"));

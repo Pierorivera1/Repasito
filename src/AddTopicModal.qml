@@ -86,6 +86,11 @@ Dialog {
                 Material.accent: backend.themeAccent
                 selectByMouse: true
                 onAccepted: notesField.forceActiveFocus()
+                KeyNavigation.tab: notesField
+                Keys.onTabPressed: function(event) {
+                    notesField.forceActiveFocus();
+                    event.accepted = true;
+                }
             }
         }
 
@@ -107,12 +112,16 @@ Dialog {
 
                 TextField {
                     id: dateField
+                    objectName: "dateField"
                     text: root.initialDateIso
                     font.family: "iA Writer Mono S"
                     font.pixelSize: 13
                     color: backend.themeForeground
                     Material.accent: backend.themeAccent
                     implicitWidth: 130
+                    activeFocusOnTab: false
+                    KeyNavigation.tab: notesField
+                    KeyNavigation.backtab: titleField
                     onTextChanged: {
                         root.initialDateIso = text.trim();
                     }
@@ -121,6 +130,7 @@ Dialog {
                 Button {
                     text: "Today"
                     flat: true
+                    focusPolicy: Qt.ClickFocus
                     font.family: "iA Writer Mono S"
                     font.pixelSize: 11
                     onClicked: {
@@ -132,6 +142,7 @@ Dialog {
                 Button {
                     text: "Yesterday"
                     flat: true
+                    focusPolicy: Qt.ClickFocus
                     font.family: "iA Writer Mono S"
                     font.pixelSize: 11
                     onClicked: {
@@ -287,6 +298,11 @@ Dialog {
                                 event.accepted = true;
                                 root.submit();
                             }
+                        }
+                        KeyNavigation.backtab: titleField
+                        Keys.onBacktabPressed: function(event) {
+                            titleField.forceActiveFocus();
+                            event.accepted = true;
                         }
                     }
                 }
