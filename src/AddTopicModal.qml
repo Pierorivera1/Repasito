@@ -52,6 +52,13 @@ Dialog {
         return [addDays(d, 1), addDays(d, 3), addDays(d, 5)];
     }
 
+    function submit() {
+        if (titleField.text.trim().length > 0) {
+            backend.addTopic(titleField.text.trim(), notesField.text, root.initialDateIso);
+            root.accept();
+        }
+    }
+
     ColumnLayout {
         width: parent.width
         spacing: 14
@@ -70,6 +77,7 @@ Dialog {
 
             TextField {
                 id: titleField
+                objectName: "titleField"
                 Layout.fillWidth: true
                 placeholderText: "e.g. Docker Volume Drivers, Ch. 4"
                 font.family: "iA Writer Mono S"
@@ -218,11 +226,21 @@ Dialog {
             Layout.fillWidth: true
             spacing: 4
 
-            Label {
-                text: "NOTES (MARKDOWN)"
-                font.family: "iA Writer Mono S"
-                font.pixelSize: 11
-                color: backend.themeMuted
+            RowLayout {
+                Layout.fillWidth: true
+                Label {
+                    text: "NOTES (MARKDOWN)"
+                    font.family: "iA Writer Mono S"
+                    font.pixelSize: 11
+                    color: backend.themeMuted
+                }
+                Item { Layout.fillWidth: true }
+                Label {
+                    text: "↵ Schedule  ⇧↵ Newline"
+                    font.family: "iA Writer Mono S"
+                    font.pixelSize: 10
+                    color: backend.themeMuted
+                }
             }
 
             Rectangle {
@@ -240,6 +258,7 @@ Dialog {
 
                     TextArea {
                         id: notesField
+                        objectName: "notesField"
                         placeholderText: "- [ ] Checklist items\n- Concepts to recall\n- https://reference.link"
                         font.family: "iA Writer Mono S"
                         font.pixelSize: 12
@@ -252,6 +271,23 @@ Dialog {
                         leftPadding: 6
                         rightPadding: 6
                         background: null
+
+                        Keys.onReturnPressed: function(event) {
+                            if (event.modifiers & Qt.ShiftModifier) {
+                                event.accepted = false;
+                            } else {
+                                event.accepted = true;
+                                root.submit();
+                            }
+                        }
+                        Keys.onEnterPressed: function(event) {
+                            if (event.modifiers & Qt.ShiftModifier) {
+                                event.accepted = false;
+                            } else {
+                                event.accepted = true;
+                                root.submit();
+                            }
+                        }
                     }
                 }
             }
@@ -282,6 +318,7 @@ Dialog {
 
         Button {
             id: scheduleButton
+            objectName: "scheduleButton"
             text: "Schedule Reviews"
             highlighted: true
             font.family: "iA Writer Mono S"
@@ -299,12 +336,7 @@ Dialog {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            onClicked: {
-                if (titleField.text.trim().length > 0) {
-                    backend.addTopic(titleField.text.trim(), notesField.text, root.initialDateIso);
-                    root.accept();
-                }
-            }
+            onClicked: root.submit()
         }
     }
 }

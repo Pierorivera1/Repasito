@@ -935,8 +935,34 @@ void TestOmacalendar::testQmlUiComponentsAndShortcuts() {
     // 4. Modal open toggles isAnyModalOpen and blocks shortcuts
     QVERIFY(QMetaObject::invokeMethod(addTopicModal, "openModal"));
     QTRY_COMPARE(rootWin->property("isAnyModalOpen").toBool(), true);
-    QVERIFY(QMetaObject::invokeMethod(addTopicModal, "reject"));
+
+    // 4b. Test notesField keybindings: Shift+Return (newline) vs Return (schedule review)
+    QObject *titleField = addTopicModal->findChild<QObject *>(QStringLiteral("titleField"));
+    QObject *notesField = addTopicModal->findChild<QObject *>(QStringLiteral("notesField"));
+    QVERIFY(titleField);
+    QVERIFY(notesField);
+
+    titleField->setProperty("text", QStringLiteral("Keybinding Topic"));
+    notesField->setProperty("text", QStringLiteral("Line 1"));
+    QVERIFY(QMetaObject::invokeMethod(notesField, "forceActiveFocus"));
+    notesField->setProperty("cursorPosition", 6);
+
+    // Send Shift+Return: Must NOT close modal (keeps editing note with newline)
+    QKeyEvent shiftReturnEvent(QEvent::KeyPress, Qt::Key_Return, Qt::ShiftModifier, QStringLiteral("\n"));
+    QCoreApplication::sendEvent(notesField, &shiftReturnEvent);
+    QCOMPARE(rootWin->property("isAnyModalOpen").toBool(), true);
+    QCOMPARE(notesField->property("text").toString(), QStringLiteral("Line 1\n"));
+
+    // Send plain Return: Triggers submit() and schedules reviews, closing the modal
+    QKeyEvent returnEvent(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+    QCoreApplication::sendEvent(notesField, &returnEvent);
     QTRY_COMPARE(rootWin->property("isAnyModalOpen").toBool(), false);
+
+    // Verify topic was created and clean it up
+    const QVariantList addedAgenda = backend.database().getAgenda(QStringLiteral("Keybinding Topic"), QString());
+    QCOMPARE(addedAgenda.size(), 3);
+    const int createdTopicId = addedAgenda.first().toMap().value(QStringLiteral("topicId")).toInt();
+    backend.database().deleteTopic(createdTopicId);
 
     // 5. Delete dialog open / reject clears state
     deleteConfirmDialog->setProperty("topicIdToDelete", 42);
@@ -950,6 +976,7 @@ void TestOmacalendar::testQmlUiComponentsAndShortcuts() {
     backend.clearSelectedDate();
     QCOMPARE(backend.selectedDate(), QString());
 }
+
 
 void TestOmacalendar::cleanupTestCase() {
 }
