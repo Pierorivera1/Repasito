@@ -142,7 +142,16 @@ ApplicationWindow {
                 highlighted: true
                 font.family: "iA Writer Mono S"
                 font.pixelSize: 12
+                font.bold: true
                 Material.background: backend.themeAccent
+                Material.foreground: backend.themeAccentForeground
+                contentItem: Text {
+                    text: addButton.text
+                    font: addButton.font
+                    color: backend.themeAccentForeground
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
                 implicitHeight: 36
                 ToolTip.visible: hovered
                 ToolTip.text: "Schedule new spaced repetition (N)"
@@ -323,18 +332,36 @@ ApplicationWindow {
             background: Rectangle { color: "transparent" }
 
             Button {
+                id: cancelDelButton
                 text: "Cancel"
                 flat: true
                 font.family: "iA Writer Mono S"
                 DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+                contentItem: Text {
+                    text: cancelDelButton.text
+                    font: cancelDelButton.font
+                    color: backend.themeMuted
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
                 onClicked: deleteConfirmDialog.reject()
             }
 
             Button {
+                id: deleteButton
                 text: "Delete"
                 highlighted: true
-                Material.background: "#dc2626"
                 font.family: "iA Writer Mono S"
+                font.bold: true
+                Material.background: "#dc2626"
+                Material.foreground: "#ffffff"
+                contentItem: Text {
+                    text: deleteButton.text
+                    font: deleteButton.font
+                    color: "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
                 DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
                 onClicked: {
                     if (deleteConfirmDialog.topicIdToDelete > 0) {

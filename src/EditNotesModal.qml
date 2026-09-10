@@ -67,19 +67,41 @@ Dialog {
         }
 
         Button {
+            id: cancelEditButton
             text: "Cancel"
             flat: true
             font.family: "iA Writer Mono S"
+            font.pixelSize: 12
             DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            contentItem: Text {
+                text: cancelEditButton.text
+                font: cancelEditButton.font
+                color: backend.themeMuted
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
             onClicked: root.reject()
         }
 
         Button {
+            id: saveButton
             text: "Save Notes"
             highlighted: true
             font.family: "iA Writer Mono S"
+            font.pixelSize: 12
+            font.bold: true
             Material.background: backend.themeAccent
+            Material.foreground: backend.themeAccentForeground
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+
+            contentItem: Text {
+                text: saveButton.text
+                font: saveButton.font
+                color: backend.themeAccentForeground
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
             onClicked: {
                 if (root.topicId > 0) {
                     backend.updateNotes(root.topicId, notesEditor.text);

@@ -1,5 +1,6 @@
 #include "backend.h"
 
+#include <QColor>
 #include <QDate>
 #include <QDir>
 #include <QFile>
@@ -54,6 +55,16 @@ QString Backend::todayDateString() const {
 
 QString Backend::todayDateIso() const {
     return QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"));
+}
+
+QString Backend::themeAccentForeground() const {
+    QColor c(m_themeAccent);
+    if (!c.isValid())
+        return QStringLiteral("#ffffff");
+
+    // Standard relative luminance (ITU-R BT.709)
+    const double lum = 0.2126 * c.redF() + 0.7152 * c.greenF() + 0.0722 * c.blueF();
+    return (lum > 0.4) ? QStringLiteral("#0c0e10") : QStringLiteral("#ffffff");
 }
 
 bool Backend::addTopic(const QString &title, const QString &notes, const QString &initialDateIso) {

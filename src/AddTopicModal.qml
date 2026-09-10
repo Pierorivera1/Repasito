@@ -40,7 +40,6 @@ Dialog {
     }
 
     function computeReviewDates(baseIso) {
-        // Simple client calculation for visual preview
         var d = new Date(baseIso + "T00:00:00");
         if (isNaN(d.getTime())) return ["+1d", "+3d", "+5d"];
         
@@ -254,19 +253,41 @@ Dialog {
         }
 
         Button {
+            id: cancelButton
             text: "Cancel"
             flat: true
             font.family: "iA Writer Mono S"
+            font.pixelSize: 12
             DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            contentItem: Text {
+                text: cancelButton.text
+                font: cancelButton.font
+                color: backend.themeMuted
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
             onClicked: root.reject()
         }
 
         Button {
+            id: scheduleButton
             text: "Schedule Reviews"
             highlighted: true
             font.family: "iA Writer Mono S"
+            font.pixelSize: 12
+            font.bold: true
             Material.background: backend.themeAccent
+            Material.foreground: backend.themeAccentForeground
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+
+            contentItem: Text {
+                text: scheduleButton.text
+                font: scheduleButton.font
+                color: backend.themeAccentForeground
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
             onClicked: {
                 if (titleField.text.trim().length > 0) {
                     backend.addTopic(titleField.text.trim(), notesField.text, root.initialDateIso);
