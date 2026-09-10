@@ -21,8 +21,11 @@ public:
     bool snoozeReview(int reviewId, int days = 1);
     bool updateNotes(int topicId, const QString &notes);
     bool deleteTopic(int topicId);
+    bool deleteReviewTopic(int reviewId);
 
-    QVariantList getAgenda(const QString &searchQuery = QString()) const;
+    QSqlDatabase database() const { return m_db; }
+
+    QVariantList getAgenda(const QString &searchQuery = QString(), const QString &dateFilter = QString()) const;
     QVariantList getDayStrip(const QDate &startDate, int numDays = 7) const;
 
 private:

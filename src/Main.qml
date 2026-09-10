@@ -37,19 +37,22 @@ ApplicationWindow {
                                    window.visibility === Window.Maximized);
     }
 
+    readonly property bool isAnyModalOpen: addTopicModal.visible || editNotesModal.visible || deleteConfirmDialog.visible
+
     // Keyboard Shortcuts
     Shortcut {
         sequence: "Ctrl+N"
+        enabled: !isAnyModalOpen
         onActivated: addTopicModal.openModal()
     }
     Shortcut {
         sequence: "N"
-        enabled: !searchField.activeFocus
+        enabled: !searchField.activeFocus && !isAnyModalOpen
         onActivated: addTopicModal.openModal()
     }
     Shortcut {
         sequence: "/"
-        enabled: !searchField.activeFocus
+        enabled: !searchField.activeFocus && !isAnyModalOpen
         onActivated: {
             searchField.forceActiveFocus();
             searchField.selectAll();
@@ -57,30 +60,67 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Escape"
+        enabled: !isAnyModalOpen
         onActivated: {
             if (searchField.activeFocus || searchField.text.length > 0) {
                 searchField.text = "";
                 agendaView.forceActiveFocus();
+            } else if (backend.selectedDate.length > 0) {
+                backend.clearSelectedDate();
             }
         }
     }
     Shortcut {
+        sequence: "H"
+        enabled: !searchField.activeFocus && !isAnyModalOpen
+        onActivated: backend.previousDay()
+    }
+    Shortcut {
+        sequence: "L"
+        enabled: !searchField.activeFocus && !isAnyModalOpen
+        onActivated: backend.nextDay()
+    }
+    Shortcut {
         sequence: "J"
-        enabled: !searchField.activeFocus
+        enabled: !searchField.activeFocus && !isAnyModalOpen
         onActivated: agendaView.incrementCurrentIndex()
     }
     Shortcut {
         sequence: "K"
-        enabled: !searchField.activeFocus
+        enabled: !searchField.activeFocus && !isAnyModalOpen
         onActivated: agendaView.decrementCurrentIndex()
     }
     Shortcut {
         sequence: "Space"
-        enabled: !searchField.activeFocus && agendaView.currentItem !== null
+        enabled: !searchField.activeFocus && !isAnyModalOpen && agendaView.currentItem !== null
         onActivated: {
             var item = agendaView.model[agendaView.currentIndex];
             if (item) {
                 backend.toggleReview(item.reviewId, !item.isCompleted);
+            }
+        }
+    }
+    Shortcut {
+        sequence: "D"
+        enabled: !searchField.activeFocus && !isAnyModalOpen && agendaView.currentItem !== null
+        onActivated: {
+            var item = agendaView.model[agendaView.currentIndex];
+            if (item) {
+                deleteConfirmDialog.topicIdToDelete = item.topicId;
+                deleteConfirmDialog.topicTitleToDelete = item.title || "";
+                deleteConfirmDialog.open();
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Delete"
+        enabled: !searchField.activeFocus && !isAnyModalOpen && agendaView.currentItem !== null
+        onActivated: {
+            var item = agendaView.model[agendaView.currentIndex];
+            if (item) {
+                deleteConfirmDialog.topicIdToDelete = item.topicId;
+                deleteConfirmDialog.topicTitleToDelete = item.title || "";
+                deleteConfirmDialog.open();
             }
         }
     }
@@ -119,12 +159,14 @@ ApplicationWindow {
             // Search Bar
             TextField {
                 id: searchField
+                objectName: "searchField"
                 placeholderText: "Search (/)"
                 font.family: "iA Writer Mono S"
                 font.pixelSize: 12
                 color: backend.themeForeground
                 Material.accent: backend.themeAccent
-                implicitWidth: 160
+                implicitWidth: 170
+                rightPadding: clearSearchBtn.visible ? 24 : 8
                 selectByMouse: true
                 background: Rectangle {
                     color: backend.themeLighterBg
@@ -133,6 +175,42 @@ ApplicationWindow {
                     border.width: 1
                 }
                 onTextChanged: backend.searchQuery = text
+                onAccepted: agendaView.forceActiveFocus()
+
+                Connections {
+                    target: backend
+                    function onSearchQueryChanged() {
+                        if (searchField.text !== backend.searchQuery) {
+                            searchField.text = backend.searchQuery;
+                        }
+                    }
+                }
+
+                Text {
+                    id: clearSearchBtn
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: searchField.text.length > 0
+                    text: "✕"
+                    font.family: "iA Writer Mono S"
+                    font.pixelSize: 10
+                    font.bold: true
+                    color: clearSearchMouse.containsMouse ? backend.themeForeground : backend.themeMuted
+
+                    MouseArea {
+                        id: clearSearchMouse
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ToolTip.visible: containsMouse
+                        ToolTip.text: "Clear search"
+                        onClicked: {
+                            searchField.text = "";
+                        }
+                    }
+                }
             }
 
             // Add Topic Button
@@ -162,13 +240,96 @@ ApplicationWindow {
         // Mini-Calendar Strip (Week overview)
         DayStrip {
             id: dayStrip
+            objectName: "dayStrip"
             Layout.fillWidth: true
-            onDateSelected: function(date) {
-                if (date.length > 0) {
-                    searchField.text = date;
-                } else {
-                    searchField.text = "";
+        }
+
+        // Active Date Filter Indicator / Clear Badge
+        RowLayout {
+            Layout.fillWidth: true
+            visible: backend.selectedDate.length > 0
+            spacing: 8
+
+            Rectangle {
+                height: 28
+                implicitHeight: 28
+                radius: 6
+                color: backend.themeLighterBg
+                border.color: backend.themeAccent
+                border.width: 1
+                implicitWidth: filterBadgeContent.implicitWidth + 20
+
+                RowLayout {
+                    id: filterBadgeContent
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    Text {
+                        text: "Filtered by: " + backend.selectedDateDisplay
+                        font.family: "iA Writer Mono S"
+                        font.pixelSize: 11
+                        font.bold: true
+                        color: backend.themeForeground
+                    }
+
+                    Rectangle {
+                        implicitWidth: 16
+                        implicitHeight: 16
+                        Layout.preferredWidth: 16
+                        Layout.preferredHeight: 16
+                        width: 16
+                        height: 16
+                        radius: 8
+                        color: closeBtnMouse.containsMouse ? backend.themeAccent : (backend.darkMode ? "#282c30" : "#e5e7eb")
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✕"
+                            font.family: "iA Writer Mono S"
+                            font.pixelSize: 9
+                            font.bold: true
+                            color: closeBtnMouse.containsMouse ? backend.themeAccentForeground : backend.themeMuted
+                        }
+
+                        MouseArea {
+                            id: closeBtnMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            ToolTip.visible: containsMouse
+                            ToolTip.text: "Clear date filter"
+                            onClicked: backend.clearSelectedDate()
+                        }
+                    }
                 }
+            }
+
+            Text {
+                text: (backend.selectedDate === backend.todayDateIso) ? "Showing reviews for today and overdue" : "Showing only reviews for this date"
+                font.family: "iA Writer Mono S"
+                font.pixelSize: 11
+                color: backend.themeMuted
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+
+            Button {
+                id: clearFilterBtn
+                text: "Clear Filter"
+                flat: true
+                font.family: "iA Writer Mono S"
+                font.pixelSize: 11
+                implicitHeight: 28
+                Layout.preferredHeight: 28
+                Layout.alignment: Qt.AlignVCenter
+                contentItem: Text {
+                    text: clearFilterBtn.text
+                    font: clearFilterBtn.font
+                    color: clearFilterBtn.hovered ? backend.themeAccent : backend.themeMuted
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: backend.clearSelectedDate()
             }
         }
 
@@ -180,6 +341,7 @@ ApplicationWindow {
 
             ListView {
                 id: agendaView
+                objectName: "agendaView"
                 anchors.fill: parent
                 clip: true
                 spacing: 6
@@ -229,8 +391,9 @@ ApplicationWindow {
                     onEditNotesRequested: function(topicId, notes) {
                         editNotesModal.openForTopic(topicId, notes);
                     }
-                    onDeleteRequested: function(topicId) {
+                    onDeleteRequested: function(topicId, title) {
                         deleteConfirmDialog.topicIdToDelete = topicId;
+                        deleteConfirmDialog.topicTitleToDelete = title || "";
                         deleteConfirmDialog.open();
                     }
                     onClicked: {
@@ -245,13 +408,28 @@ ApplicationWindow {
                     spacing: 12
 
                     Text {
-                        text: "🎉"
+                        text: {
+                            if (searchField.text.trim().length > 0) return "🔍";
+                            if (backend.selectedDate.length > 0) return "📅";
+                            return "🎉";
+                        }
                         font.pixelSize: 36
                         Layout.alignment: Qt.AlignHCenter
                     }
 
                     Text {
-                        text: searchField.text.length > 0 ? "No reviews match your search." : "No reviews pending!"
+                        text: {
+                            if (searchField.text.trim().length > 0 && backend.selectedDate.length > 0) {
+                                return "No reviews matching search on this day";
+                            }
+                            if (searchField.text.trim().length > 0) {
+                                return "No reviews matching search";
+                            }
+                            if (backend.selectedDate.length > 0) {
+                                return "No reviews scheduled for this day";
+                            }
+                            return "No pending reviews";
+                        }
                         font.family: "iA Writer Mono S"
                         font.pixelSize: 14
                         font.weight: Font.Medium
@@ -260,11 +438,86 @@ ApplicationWindow {
                     }
 
                     Text {
-                        text: "Press 'N' or click '+ Add Topic' to schedule reviews."
+                        text: {
+                            if (searchField.text.trim().length > 0 && backend.selectedDate.length > 0) {
+                                return "Try adjusting your search query or clearing filters to see other reviews.";
+                            }
+                            if (searchField.text.trim().length > 0) {
+                                return "Try adjusting your search query or clear the search.";
+                            }
+                            if (backend.selectedDate.length > 0) {
+                                return "Select another day or click the active day to restore the full agenda.";
+                            }
+                            return "Press 'N' or click '+ Add Topic' to schedule reviews.";
+                        }
                         font.family: "iA Writer Mono S"
                         font.pixelSize: 12
                         color: backend.themeMuted
                         Layout.alignment: Qt.AlignHCenter
+                    }
+
+                    RowLayout {
+                        visible: backend.selectedDate.length > 0 || searchField.text.trim().length > 0
+                        spacing: 8
+                        Layout.alignment: Qt.AlignHCenter
+
+                        Button {
+                            id: emptyClearSearchBtn
+                            visible: searchField.text.trim().length > 0
+                            text: "Clear Search"
+                            flat: true
+                            font.family: "iA Writer Mono S"
+                            font.pixelSize: 12
+                            contentItem: Text {
+                                text: emptyClearSearchBtn.text
+                                font: emptyClearSearchBtn.font
+                                color: backend.themeAccent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: {
+                                searchField.text = "";
+                            }
+                        }
+
+                        Button {
+                            id: emptyClearDateBtn
+                            visible: backend.selectedDate.length > 0
+                            text: "Clear Date Filter"
+                            flat: true
+                            font.family: "iA Writer Mono S"
+                            font.pixelSize: 12
+                            contentItem: Text {
+                                text: emptyClearDateBtn.text
+                                font: emptyClearDateBtn.font
+                                color: backend.themeAccent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: {
+                                backend.clearSelectedDate();
+                            }
+                        }
+
+                        Button {
+                            id: emptyClearAllBtn
+                            visible: backend.selectedDate.length > 0 && searchField.text.trim().length > 0
+                            text: "Clear All Filters"
+                            flat: true
+                            font.family: "iA Writer Mono S"
+                            font.pixelSize: 12
+                            contentItem: Text {
+                                text: emptyClearAllBtn.text
+                                font: emptyClearAllBtn.font
+                                color: backend.themeMuted
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: {
+                                searchField.text = "";
+                                backend.clearSelectedDate();
+                            }
+                        }
                     }
                 }
             }
@@ -276,7 +529,7 @@ ApplicationWindow {
             spacing: 12
 
             Text {
-                text: "Shortcuts: [N] Add topic   [/] Search   [J/K] Navigate   [Space] Complete"
+                text: "Shortcuts: [N] Add topic   [/] Search   [H/L] Day   [J/K] Navigate   [D] Delete   [Space] Complete"
                 font.family: "iA Writer Mono S"
                 font.pixelSize: 10
                 color: backend.themeMuted
@@ -296,23 +549,38 @@ ApplicationWindow {
     // Add Topic Modal
     AddTopicModal {
         id: addTopicModal
+        objectName: "addTopicModal"
     }
 
     // Edit Notes Modal
     EditNotesModal {
         id: editNotesModal
+        objectName: "editNotesModal"
     }
 
     // Delete Confirmation Dialog
     Dialog {
         id: deleteConfirmDialog
+        objectName: "deleteConfirmDialog"
         title: "Delete Topic"
         modal: true
         anchors.centerIn: parent
-        width: 380
+        width: 400
         padding: 20
 
         property int topicIdToDelete: -1
+        property string topicTitleToDelete: ""
+
+        onAccepted: {
+            if (topicIdToDelete > 0) {
+                backend.deleteTopic(topicIdToDelete);
+                topicIdToDelete = -1;
+            }
+        }
+
+        onRejected: {
+            topicIdToDelete = -1;
+        }
 
         background: Rectangle {
             color: backend.themeLighterBg
@@ -321,7 +589,9 @@ ApplicationWindow {
         }
 
         contentItem: Label {
-            text: "Are you sure you want to delete this topic and all its scheduled reviews?"
+            text: deleteConfirmDialog.topicTitleToDelete.length > 0
+                ? ("Are you sure you want to delete \"" + deleteConfirmDialog.topicTitleToDelete + "\" and all its scheduled reviews across all dates?")
+                : "Are you sure you want to delete this topic and all its scheduled reviews across all dates?"
             font.family: "iA Writer Mono S"
             font.pixelSize: 12
             wrapMode: Text.WordWrap
@@ -363,12 +633,7 @@ ApplicationWindow {
                     verticalAlignment: Text.AlignVCenter
                 }
                 DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
-                onClicked: {
-                    if (deleteConfirmDialog.topicIdToDelete > 0) {
-                        backend.deleteTopic(deleteConfirmDialog.topicIdToDelete);
-                    }
-                    deleteConfirmDialog.accept();
-                }
+                onClicked: deleteConfirmDialog.accept()
             }
         }
     }

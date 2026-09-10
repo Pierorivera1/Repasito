@@ -65,5 +65,14 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    for (int i = 1; i < argc; ++i) {
+        const QString arg = QString::fromUtf8(argv[i]);
+        if (arg == QStringLiteral("--date") && i + 1 < argc) {
+            backend.setSelectedDate(QString::fromUtf8(argv[++i]));
+        } else if (arg == QStringLiteral("--query") && i + 1 < argc) {
+            backend.setSearchQuery(QString::fromUtf8(argv[++i]));
+        }
+    }
+
     return app.exec();
 }

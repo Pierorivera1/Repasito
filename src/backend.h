@@ -7,6 +7,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <QTimer>
+
 #include "database.h"
 
 class Backend : public QObject {
@@ -24,8 +26,10 @@ class Backend : public QObject {
     Q_PROPERTY(QVariantList agenda READ agenda NOTIFY agendaChanged)
     Q_PROPERTY(QVariantList dayStrip READ dayStrip NOTIFY dayStripChanged)
     Q_PROPERTY(QString searchQuery READ searchQuery WRITE setSearchQuery NOTIFY searchQueryChanged)
-    Q_PROPERTY(QString todayDateString READ todayDateString CONSTANT)
-    Q_PROPERTY(QString todayDateIso READ todayDateIso CONSTANT)
+    Q_PROPERTY(QString selectedDate READ selectedDate WRITE setSelectedDate NOTIFY selectedDateChanged)
+    Q_PROPERTY(QString selectedDateDisplay READ selectedDateDisplay NOTIFY selectedDateChanged)
+    Q_PROPERTY(QString todayDateString READ todayDateString NOTIFY todayDateChanged)
+    Q_PROPERTY(QString todayDateIso READ todayDateIso NOTIFY todayDateChanged)
 
 public:
     explicit Backend(QObject *parent = nullptr);
@@ -47,6 +51,12 @@ public:
     QVariantList dayStrip() const { return m_dayStrip; }
     QString searchQuery() const { return m_searchQuery; }
     void setSearchQuery(const QString &query);
+    QString selectedDate() const { return m_selectedDate; }
+    Q_INVOKABLE void setSelectedDate(const QString &date);
+    Q_INVOKABLE void clearSelectedDate();
+    Q_INVOKABLE void nextDay();
+    Q_INVOKABLE void previousDay();
+    QString selectedDateDisplay() const;
 
     QString todayDateString() const;
     QString todayDateIso() const;
@@ -56,7 +66,12 @@ public:
     Q_INVOKABLE bool snoozeReview(int reviewId, int days = 1);
     Q_INVOKABLE bool updateNotes(int topicId, const QString &notes);
     Q_INVOKABLE bool deleteTopic(int topicId);
+    Q_INVOKABLE bool deleteReviewTopic(int reviewId);
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void checkDateRollover();
+
+    Database &database() { return m_db; }
+    const Database &database() const { return m_db; }
 
     Q_INVOKABLE QVariantMap windowGeometry() const;
     Q_INVOKABLE void saveWindowGeometry(int x, int y, int width, int height, bool maximized);
@@ -68,16 +83,20 @@ signals:
     void agendaChanged();
     void dayStripChanged();
     void searchQueryChanged();
+    void selectedDateChanged();
+    void todayDateChanged();
 
 private:
     void loadOmarchyTheme();
     void watchOmarchyTheme();
     void updateAgenda();
+    void scheduleMidnightTimer();
 
     Database m_db;
     QVariantList m_agenda;
     QVariantList m_dayStrip;
     QString m_searchQuery;
+    QString m_selectedDate;
 
     bool m_darkMode = true;
     qreal m_textScale = 1.0;
@@ -88,4 +107,7 @@ private:
     QString m_themeLighterBg;
     QString m_themeMuted;
     QFileSystemWatcher m_themeWatcher;
+    QDate m_lastRecordedDate;
+    QTimer *m_midnightTimer = nullptr;
+    QTimer *m_clockCheckTimer = nullptr;
 };

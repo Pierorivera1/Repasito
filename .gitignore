@@ -9,3 +9,5 @@ Makefile
 pkgbuild/pkg/
 pkgbuild/src/
 pkgbuild/*.pkg.tar.*
+.agents/
+ORIGINAL_REQUEST.md

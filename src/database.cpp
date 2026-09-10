@@ -11,8 +11,13 @@ Database::Database(QObject *parent) : QObject(parent) {
 }
 
 Database::~Database() {
+    const QString connName = m_db.connectionName();
     if (m_db.isOpen()) {
         m_db.close();
+    }
+    m_db = QSqlDatabase();
+    if (!connName.isEmpty()) {
+        QSqlDatabase::removeDatabase(connName);
     }
 }
 
@@ -25,8 +30,13 @@ bool Database::init() {
 
     m_dbPath = dataDir + QStringLiteral("/omacalendar.db");
 
-    m_db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"));
-    m_db.setDatabaseName(m_dbPath);
+    const QString connectionName = QStringLiteral("omacalendar_%1").arg(reinterpret_cast<quintptr>(this));
+    if (QSqlDatabase::contains(connectionName)) {
+        m_db = QSqlDatabase::database(connectionName);
+    } else {
+        m_db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connectionName);
+        m_db.setDatabaseName(m_dbPath);
+    }
 
     if (!m_db.open()) {
         qWarning() << "Failed to open SQLite database:" << m_db.lastError().text();
@@ -217,23 +227,60 @@ bool Database::updateNotes(int topicId, const QString &notes) {
 }
 
 bool Database::deleteTopic(int topicId) {
-    m_db.transaction();
+    if (!m_db.isOpen()) {
+        return false;
+    }
+
+    if (!m_db.transaction()) {
+        qWarning() << "Failed to begin transaction for deleting topic:" << m_db.lastError().text();
+        return false;
+    }
 
     QSqlQuery delReviews(m_db);
     delReviews.prepare(QStringLiteral("DELETE FROM reviews WHERE topic_id = :topic_id"));
     delReviews.bindValue(QStringLiteral(":topic_id"), topicId);
-    delReviews.exec();
+    if (!delReviews.exec()) {
+        qWarning() << "Failed to delete reviews for topic" << topicId << ":" << delReviews.lastError().text();
+        m_db.rollback();
+        return false;
+    }
 
     QSqlQuery delTopic(m_db);
     delTopic.prepare(QStringLiteral("DELETE FROM topics WHERE id = :topic_id"));
     delTopic.bindValue(QStringLiteral(":topic_id"), topicId);
-    delTopic.exec();
+    if (!delTopic.exec()) {
+        qWarning() << "Failed to delete topic" << topicId << ":" << delTopic.lastError().text();
+        m_db.rollback();
+        return false;
+    }
 
-    m_db.commit();
+    if (!m_db.commit()) {
+        qWarning() << "Failed to commit transaction for deleting topic" << topicId << ":" << m_db.lastError().text();
+        m_db.rollback();
+        return false;
+    }
+
     return true;
 }
 
-QVariantList Database::getAgenda(const QString &searchQuery) const {
+bool Database::deleteReviewTopic(int reviewId) {
+    if (!m_db.isOpen()) {
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(QStringLiteral("SELECT topic_id FROM reviews WHERE id = :id"));
+    query.bindValue(QStringLiteral(":id"), reviewId);
+    if (!query.exec() || !query.next()) {
+        qWarning() << "Review id" << reviewId << "not found for deletion";
+        return false;
+    }
+
+    const int topicId = query.value(0).toInt();
+    return deleteTopic(topicId);
+}
+
+QVariantList Database::getAgenda(const QString &searchQuery, const QString &dateFilter) const {
     QVariantList items;
     const QDate today = QDate::currentDate();
     const QString todayStr = today.toString(QStringLiteral("yyyy-MM-dd"));
@@ -247,17 +294,44 @@ QVariantList Database::getAgenda(const QString &searchQuery) const {
         "JOIN topics t ON r.topic_id = t.id "
     );
 
-    if (!searchQuery.trimmed().isEmpty()) {
-        sql += QStringLiteral("WHERE (t.title LIKE :query OR t.notes LIKE :query) ");
+    QStringList conditions;
+    const bool hasSearch = !searchQuery.trimmed().isEmpty();
+    if (hasSearch) {
+        conditions.append(QStringLiteral("(t.title LIKE :query OR t.notes LIKE :query)"));
+    }
+
+    const QString cleanDate = dateFilter.trimmed();
+    const bool hasDateFilter = !cleanDate.isEmpty();
+    QDate filterDate;
+    if (hasDateFilter) {
+        filterDate = QDate::fromString(cleanDate, QStringLiteral("yyyy-MM-dd"));
+        if (filterDate.isValid()) {
+            if (filterDate == today) {
+                // Today selected: reviews scheduled for today, uncompleted overdue reviews,
+                // or reviews completed today (including overdue reviews finished today)
+                conditions.append(QStringLiteral(
+                    "(r.scheduled_date = :dateFilter OR (r.completed_at IS NULL AND r.scheduled_date < :dateFilter) OR (r.completed_at IS NOT NULL AND substr(r.completed_at, 1, 10) = :dateFilter))"
+                ));
+            } else {
+                conditions.append(QStringLiteral("r.scheduled_date = :dateFilter"));
+            }
+        }
+    }
+
+    if (!conditions.isEmpty()) {
+        sql += QStringLiteral("WHERE ") + conditions.join(QStringLiteral(" AND ")) + QStringLiteral(" ");
     }
 
     sql += QStringLiteral("ORDER BY r.completed_at IS NOT NULL ASC, r.scheduled_date ASC, r.id ASC");
 
     QSqlQuery query(m_db);
     query.prepare(sql);
-    if (!searchQuery.trimmed().isEmpty()) {
+    if (hasSearch) {
         const QString pattern = QStringLiteral("%") + searchQuery.trimmed() + QStringLiteral("%");
         query.bindValue(QStringLiteral(":query"), pattern);
+    }
+    if (hasDateFilter && filterDate.isValid()) {
+        query.bindValue(QStringLiteral(":dateFilter"), cleanDate);
     }
 
     if (!query.exec()) {
@@ -285,7 +359,7 @@ QVariantList Database::getAgenda(const QString &searchQuery) const {
         if (isCompleted) {
             section = QStringLiteral("Completed");
             sectionOrder = 99;
-        } else if (isOverdue || scheduledDate == today) {
+        } else if (scheduledDate == today || ((!hasDateFilter || filterDate == today) && isOverdue)) {
             section = QStringLiteral("Today");
             sectionOrder = 0;
         } else if (scheduledDate == tomorrow) {

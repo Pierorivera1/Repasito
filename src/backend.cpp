@@ -2,12 +2,14 @@
 
 #include <QColor>
 #include <QDate>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRect>
 #include <QSettings>
 #include <QTextStream>
+#include <QTimer>
 #include <QDebug>
 
 namespace {
@@ -21,6 +23,7 @@ Backend::Backend(QObject *parent)
     loadOmarchyTheme();
     watchOmarchyTheme();
     updateAgenda();
+    scheduleMidnightTimer();
 }
 
 void Backend::setDarkMode(bool darkMode) {
@@ -47,6 +50,60 @@ void Backend::setSearchQuery(const QString &query) {
     m_searchQuery = query;
     emit searchQueryChanged();
     updateAgenda();
+}
+
+void Backend::setSelectedDate(const QString &date) {
+    const QString cleanDate = date.trimmed();
+    if (m_selectedDate == cleanDate)
+        return;
+
+    m_selectedDate = cleanDate;
+    emit selectedDateChanged();
+    updateAgenda();
+}
+
+void Backend::clearSelectedDate() {
+    setSelectedDate(QString());
+}
+
+void Backend::nextDay() {
+    if (m_selectedDate.isEmpty()) {
+        setSelectedDate(QDate::currentDate().addDays(1).toString(QStringLiteral("yyyy-MM-dd")));
+    } else {
+        const QDate d = QDate::fromString(m_selectedDate, QStringLiteral("yyyy-MM-dd"));
+        if (d.isValid()) {
+            setSelectedDate(d.addDays(1).toString(QStringLiteral("yyyy-MM-dd")));
+        }
+    }
+}
+
+void Backend::previousDay() {
+    if (m_selectedDate.isEmpty()) {
+        setSelectedDate(QDate::currentDate().addDays(-1).toString(QStringLiteral("yyyy-MM-dd")));
+    } else {
+        const QDate d = QDate::fromString(m_selectedDate, QStringLiteral("yyyy-MM-dd"));
+        if (d.isValid()) {
+            setSelectedDate(d.addDays(-1).toString(QStringLiteral("yyyy-MM-dd")));
+        }
+    }
+}
+
+QString Backend::selectedDateDisplay() const {
+    if (m_selectedDate.isEmpty())
+        return QString();
+
+    const QDate date = QDate::fromString(m_selectedDate, QStringLiteral("yyyy-MM-dd"));
+    if (!date.isValid())
+        return m_selectedDate;
+
+    const QDate today = QDate::currentDate();
+    if (date == today) {
+        return QStringLiteral("Today (%1)").arg(date.toString(QStringLiteral("MMM d")));
+    } else if (date == today.addDays(1)) {
+        return QStringLiteral("Tomorrow (%1)").arg(date.toString(QStringLiteral("MMM d")));
+    } else {
+        return date.toString(QStringLiteral("dddd, MMM d"));
+    }
 }
 
 QString Backend::todayDateString() const {
@@ -119,16 +176,71 @@ bool Backend::deleteTopic(int topicId) {
     return ok;
 }
 
+bool Backend::deleteReviewTopic(int reviewId) {
+    const bool ok = m_db.deleteReviewTopic(reviewId);
+    if (ok) {
+        updateAgenda();
+    }
+    return ok;
+}
+
 void Backend::refresh() {
     updateAgenda();
 }
 
 void Backend::updateAgenda() {
-    m_agenda = m_db.getAgenda(m_searchQuery);
-    m_dayStrip = m_db.getDayStrip(QDate::currentDate(), 7);
+    m_agenda = m_db.getAgenda(m_searchQuery, m_selectedDate);
+
+    const QDate today = QDate::currentDate();
+    QDate stripStart = today;
+    if (!m_selectedDate.isEmpty()) {
+        const QDate sel = QDate::fromString(m_selectedDate, QStringLiteral("yyyy-MM-dd"));
+        if (sel.isValid()) {
+            if (sel < today) {
+                stripStart = sel;
+            } else if (sel >= today.addDays(7)) {
+                stripStart = sel.addDays(-6);
+            }
+        }
+    }
+    m_dayStrip = m_db.getDayStrip(stripStart, 7);
 
     emit agendaChanged();
     emit dayStripChanged();
+}
+
+void Backend::scheduleMidnightTimer() {
+    const QDateTime now = QDateTime::currentDateTime();
+    m_lastRecordedDate = now.date();
+    const QDateTime midnight(now.date().addDays(1), QTime(0, 0, 1));
+    const qint64 ms = now.msecsTo(midnight);
+
+    if (!m_midnightTimer) {
+        m_midnightTimer = new QTimer(this);
+        m_midnightTimer->setSingleShot(true);
+        connect(m_midnightTimer, &QTimer::timeout, this, [this]() {
+            checkDateRollover();
+        });
+    }
+    m_midnightTimer->start(ms > 0 ? ms : 1000);
+
+    if (!m_clockCheckTimer) {
+        m_clockCheckTimer = new QTimer(this);
+        connect(m_clockCheckTimer, &QTimer::timeout, this, [this]() {
+            checkDateRollover();
+        });
+        m_clockCheckTimer->start(30000); // 30-second heartbeat to detect wake-from-suspend or manual clock change
+    }
+}
+
+void Backend::checkDateRollover() {
+    const QDate current = QDate::currentDate();
+    if (current != m_lastRecordedDate) {
+        m_lastRecordedDate = current;
+        emit todayDateChanged();
+        updateAgenda();
+        scheduleMidnightTimer();
+    }
 }
 
 QVariantMap Backend::windowGeometry() const {

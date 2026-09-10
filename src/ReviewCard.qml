@@ -19,7 +19,7 @@ Rectangle {
     signal reviewToggled(int reviewId, bool completed)
     signal snoozeRequested(int reviewId)
     signal editNotesRequested(int topicId, string currentNotes)
-    signal deleteRequested(int topicId)
+    signal deleteRequested(int topicId, string topicTitle)
     signal clicked()
 
     ColumnLayout {
@@ -188,7 +188,7 @@ Rectangle {
                     ToolTip.visible: hovered
                     ToolTip.text: "Delete topic"
                     onClicked: {
-                        if (itemData) root.deleteRequested(itemData.topicId);
+                        if (itemData) root.deleteRequested(itemData.topicId, itemData.title || "");
                     }
                 }
             }
