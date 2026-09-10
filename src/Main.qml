@@ -265,7 +265,7 @@ ApplicationWindow {
                     spacing: 8
 
                     Text {
-                        text: "Filtered by: " + backend.selectedDateDisplay
+                        text: (backend.selectedDate === backend.todayDateIso ? "Viewing: " : "Filtered by: ") + backend.selectedDateDisplay
                         font.family: "iA Writer Mono S"
                         font.pixelSize: 11
                         font.bold: true
@@ -297,8 +297,14 @@ ApplicationWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             ToolTip.visible: containsMouse
-                            ToolTip.text: "Clear date filter"
-                            onClicked: backend.clearSelectedDate()
+                            ToolTip.text: (backend.selectedDate === backend.todayDateIso) ? "View all upcoming reviews" : "Back to Today"
+                            onClicked: {
+                                if (backend.selectedDate === backend.todayDateIso) {
+                                    backend.clearSelectedDate();
+                                } else {
+                                    backend.selectedDate = backend.todayDateIso;
+                                }
+                            }
                         }
                     }
                 }
@@ -315,7 +321,7 @@ ApplicationWindow {
 
             Button {
                 id: clearFilterBtn
-                text: "Clear Filter"
+                text: (backend.selectedDate === backend.todayDateIso) ? "View All Upcoming" : "Back to Today"
                 flat: true
                 font.family: "iA Writer Mono S"
                 font.pixelSize: 11
@@ -326,6 +332,32 @@ ApplicationWindow {
                     text: clearFilterBtn.text
                     font: clearFilterBtn.font
                     color: clearFilterBtn.hovered ? backend.themeAccent : backend.themeMuted
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    if (backend.selectedDate === backend.todayDateIso) {
+                        backend.clearSelectedDate();
+                    } else {
+                        backend.selectedDate = backend.todayDateIso;
+                    }
+                }
+            }
+
+            Button {
+                id: viewAllBtn
+                visible: backend.selectedDate.length > 0 && backend.selectedDate !== backend.todayDateIso
+                text: "View All"
+                flat: true
+                font.family: "iA Writer Mono S"
+                font.pixelSize: 11
+                implicitHeight: 28
+                Layout.preferredHeight: 28
+                Layout.alignment: Qt.AlignVCenter
+                contentItem: Text {
+                    text: viewAllBtn.text
+                    font: viewAllBtn.font
+                    color: viewAllBtn.hovered ? backend.themeAccent : backend.themeMuted
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -425,6 +457,9 @@ ApplicationWindow {
                             if (searchField.text.trim().length > 0) {
                                 return "No reviews matching search";
                             }
+                            if (backend.selectedDate === backend.todayDateIso) {
+                                return "No reviews scheduled for today";
+                            }
                             if (backend.selectedDate.length > 0) {
                                 return "No reviews scheduled for this day";
                             }
@@ -445,8 +480,11 @@ ApplicationWindow {
                             if (searchField.text.trim().length > 0) {
                                 return "Try adjusting your search query or clear the search.";
                             }
+                            if (backend.selectedDate === backend.todayDateIso) {
+                                return "You're all caught up for today! Check upcoming days or add a new topic.";
+                            }
                             if (backend.selectedDate.length > 0) {
-                                return "Select another day or click the active day to restore the full agenda.";
+                                return "Select another day or click 'View All Upcoming' to see the full agenda.";
                             }
                             return "Press 'N' or click '+ Add Topic' to schedule reviews.";
                         }
@@ -483,7 +521,7 @@ ApplicationWindow {
                         Button {
                             id: emptyClearDateBtn
                             visible: backend.selectedDate.length > 0
-                            text: "Clear Date Filter"
+                            text: (backend.selectedDate === backend.todayDateIso) ? "View All Upcoming" : "Back to Today"
                             flat: true
                             font.family: "iA Writer Mono S"
                             font.pixelSize: 12
@@ -495,8 +533,29 @@ ApplicationWindow {
                                 verticalAlignment: Text.AlignVCenter
                             }
                             onClicked: {
-                                backend.clearSelectedDate();
+                                if (backend.selectedDate === backend.todayDateIso) {
+                                    backend.clearSelectedDate();
+                                } else {
+                                    backend.selectedDate = backend.todayDateIso;
+                                }
                             }
+                        }
+
+                        Button {
+                            id: emptyViewAllBtn
+                            visible: backend.selectedDate.length > 0 && backend.selectedDate !== backend.todayDateIso
+                            text: "View All Upcoming"
+                            flat: true
+                            font.family: "iA Writer Mono S"
+                            font.pixelSize: 12
+                            contentItem: Text {
+                                text: emptyViewAllBtn.text
+                                font: emptyViewAllBtn.font
+                                color: backend.themeMuted
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: backend.clearSelectedDate()
                         }
 
                         Button {

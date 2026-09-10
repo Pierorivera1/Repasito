@@ -20,6 +20,8 @@ Backend::Backend(QObject *parent)
     : QObject(parent) {
     m_db.init();
 
+    m_selectedDate = QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"));
+
     loadOmarchyTheme();
     watchOmarchyTheme();
     updateAgenda();
@@ -236,6 +238,10 @@ void Backend::scheduleMidnightTimer() {
 void Backend::checkDateRollover() {
     const QDate current = QDate::currentDate();
     if (current != m_lastRecordedDate) {
+        if (m_selectedDate == m_lastRecordedDate.toString(QStringLiteral("yyyy-MM-dd"))) {
+            m_selectedDate = current.toString(QStringLiteral("yyyy-MM-dd"));
+            emit selectedDateChanged();
+        }
         m_lastRecordedDate = current;
         emit todayDateChanged();
         updateAgenda();

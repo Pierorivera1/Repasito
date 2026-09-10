@@ -585,10 +585,11 @@ void TestOmacalendar::testBackendStateDecoupling() {
     QSignalSpy querySpy(&backend, &Backend::searchQueryChanged);
     QSignalSpy agendaSpy(&backend, &Backend::agendaChanged);
 
-    // Initial state
-    QCOMPARE(backend.selectedDate(), QString());
+    // Initial state: starts on Today
+    const QString todayStr = today.toString(QStringLiteral("yyyy-MM-dd"));
+    QCOMPARE(backend.selectedDate(), todayStr);
     QCOMPARE(backend.searchQuery(), QString());
-    QCOMPARE(backend.selectedDateDisplay(), QString());
+    QVERIFY(backend.selectedDateDisplay().contains(QStringLiteral("Today")));
 
     // 1. Selecting date must NOT touch search query
     backend.setSelectedDate(tomorrowStr);
@@ -750,10 +751,10 @@ void TestOmacalendar::testDayToDayNavigation() {
     QSignalSpy dateSpy(&backend, &Backend::selectedDateChanged);
     QSignalSpy stripSpy(&backend, &Backend::dayStripChanged);
 
-    // Initial state: selectedDate is empty
-    QCOMPARE(backend.selectedDate(), QString());
+    // Initial state: selectedDate is today
+    QCOMPARE(backend.selectedDate(), todayStr);
 
-    // 1. Calling nextDay() when selectedDate is empty selects tomorrow
+    // 1. Calling nextDay() when selectedDate is today advances to tomorrow
     backend.nextDay();
     QCOMPARE(backend.selectedDate(), tomorrowStr);
     QCOMPARE(dateSpy.count(), 1);
@@ -912,14 +913,15 @@ void TestOmacalendar::testQmlUiComponentsAndShortcuts() {
     // Verify modal state property initialized to false
     QCOMPARE(rootWin->property("isAnyModalOpen").toBool(), false);
 
-    // Verify initial state
-    QCOMPARE(backend.selectedDate(), QString());
+    // Verify initial state: starts on Today
+    const QString todayDateStr = QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"));
+    QCOMPARE(backend.selectedDate(), todayDateStr);
     QCOMPARE(backend.searchQuery(), QString());
 
     // 1. Text search entered directly in searchField QML object
     searchField->setProperty("text", QStringLiteral("Raft"));
     QCOMPARE(backend.searchQuery(), QStringLiteral("Raft"));
-    QCOMPARE(backend.selectedDate(), QString()); // Date untouched!
+    QCOMPARE(backend.selectedDate(), todayDateStr); // Date untouched!
 
     // 2. Setting date filter does not alter searchField text
     const QString tomorrowStr = QDate::currentDate().addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
