@@ -64,32 +64,47 @@ Checking off the final **R3** review completes the topic and archives it.
 
 ## Installation & Build
 
-### Requirements
+### 1. Clone the Repository
 
-Ensure you have the required Qt 6 development packages installed:
+Clone the repository to your machine and navigate into the directory:
 
-- **Arch Linux / Omarchy**:
-  ```bash
-  sudo pacman -S base-devel qt6-base qt6-declarative sqlite xdg-desktop-portal
-  ```
-
-The bundled **iA Writer Mono** font is licensed under the SIL Open Font License 1.1 (see `fonts/OFL.txt`).
+```bash
+git clone https://github.com/Pierorivera1/omacalendar.git
+cd omacalendar
+```
 
 ---
 
-### Quick Install (Arch Linux / Omarchy)
+### 2. Install Prerequisites
 
-To build and install the binary, desktop entry, and application icon into your user environment (`~/.local`):
+Ensure you have `git`, `base-devel`, and the required Qt 6 development libraries installed:
+
+- **Arch Linux / Omarchy**:
+  ```bash
+  sudo pacman -S --needed base-devel git qt6-base qt6-declarative sqlite xdg-desktop-portal
+  ```
+
+---
+
+### 3. Build & Install
+
+#### Method A: Install as an Arch Package (Recommended)
+This compiles the application, installs the binary to `/usr/bin/omacalendar`, registers the desktop shortcut, and associates the application icon via `makepkg` and `pacman`:
 
 ```bash
 ./bin/install
 ```
+*(Or navigate to `cd pkgbuild && makepkg -si`)*
 
-To build a standalone Arch Linux package with `makepkg`:
+> [!TIP]
+> **Automatic Dependency Resolution**: `./bin/install` uses `makepkg -s`, which checks your system and automatically installs any missing dependencies (like `qt6-base` or `qt6-declarative`) via `pacman`. On an Omarchy PC, you can jump straight to `./bin/install`!
+
+#### Method B: Build & Run Locally (No System Install)
+If you just want to compile and run the application directly from the folder:
 
 ```bash
-cd pkgbuild
-makepkg -si
+./bin/build
+./build/omacalendar
 ```
 
 ---
@@ -149,7 +164,7 @@ omacalendar/
 
 - **Database**: SQLite database stored locally at:
   ```text
-  ~/.local/share/omacalendar/omacalendar.db
+  ~/.local/share/Omacom/omacalendar/omacalendar.db
   ```
 - **Geometry & Window State**: Automatically restored via `QSettings` at `~/.config/omacalendar/omacalendar.conf`.
 - **Theme Source**: Monitored via file watcher at:
