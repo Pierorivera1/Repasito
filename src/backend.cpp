@@ -140,6 +140,19 @@ bool Backend::addTopic(const QString &title, const QString &notes, const QString
     return false;
 }
 
+bool Backend::updateTopic(int topicId, const QString &title, const QString &notes, const QString &initialDateIso) {
+    QDate initialDate = QDate::fromString(initialDateIso, QStringLiteral("yyyy-MM-dd"));
+    if (!initialDate.isValid()) {
+        initialDate = QDate::currentDate();
+    }
+
+    const bool ok = m_db.updateTopic(topicId, title, notes, initialDate);
+    if (ok) {
+        updateAgenda();
+    }
+    return ok;
+}
+
 bool Backend::toggleReview(int reviewId, bool completed) {
     bool ok = false;
     if (completed) {

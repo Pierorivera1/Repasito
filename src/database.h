@@ -16,6 +16,7 @@ public:
     bool init();
 
     int addTopic(const QString &title, const QString &notes, const QDate &initialDate);
+    bool updateTopic(int topicId, const QString &title, const QString &notes, const QDate &initialDate);
     bool completeReview(int reviewId);
     bool uncompleteReview(int reviewId);
     bool snoozeReview(int reviewId, int days = 1);

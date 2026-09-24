@@ -10,7 +10,7 @@
 #include "database.h"
 #include "backend.h"
 
-class TestOmacalendar : public QObject {
+class TestRepasito : public QObject {
     Q_OBJECT
 
 private slots:
@@ -32,6 +32,8 @@ private slots:
     void testDayToDayNavigation();
     void testPastDateFilterSectionHeader();
     void testMidnightRolloverNotification();
+    void testUpdateTopicAndCadenceRecalculation();
+    void testEditTopicModalAndKeybinding();
     void testQmlUiComponentsAndShortcuts();
     void cleanupTestCase();
 
@@ -39,11 +41,11 @@ private:
     Database m_db;
 };
 
-void TestOmacalendar::initTestCase() {
+void TestRepasito::initTestCase() {
     QVERIFY(m_db.init());
 }
 
-void TestOmacalendar::testAddTopicAndCadence() {
+void TestRepasito::testAddTopicAndCadence() {
     const QDate baseDate(2026, 9, 1);
     const int topicId = m_db.addTopic(QStringLiteral("Docker Architecture"),
                                       QStringLiteral("- [ ] Review namespaces\n- [ ] Review cgroups"),
@@ -74,7 +76,7 @@ void TestOmacalendar::testAddTopicAndCadence() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testReviewCompletionAndTopicStatus() {
+void TestRepasito::testReviewCompletionAndTopicStatus() {
     const QDate today = QDate::currentDate();
     const int topicId = m_db.addTopic(QStringLiteral("Kubernetes Services"),
                                       QStringLiteral("ClusterIP vs NodePort"),
@@ -113,7 +115,7 @@ void TestOmacalendar::testReviewCompletionAndTopicStatus() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testOverdueRollover() {
+void TestRepasito::testOverdueRollover() {
     // Topic studied 10 days ago: reviews were at -9d, -7d, -5d
     const QDate pastDate = QDate::currentDate().addDays(-10);
     const int topicId = m_db.addTopic(QStringLiteral("Past Topic"), QString(), pastDate);
@@ -133,7 +135,7 @@ void TestOmacalendar::testOverdueRollover() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testSnoozeReview() {
+void TestRepasito::testSnoozeReview() {
     const QDate pastDate = QDate::currentDate().addDays(-2);
     const int topicId = m_db.addTopic(QStringLiteral("Snooze Topic"), QString(), pastDate);
     QVERIFY(topicId > 0);
@@ -159,7 +161,7 @@ void TestOmacalendar::testSnoozeReview() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testSearchFilter() {
+void TestRepasito::testSearchFilter() {
     const int t1 = m_db.addTopic(QStringLiteral("Rust Borrow Checker"), QStringLiteral("Lifetimes and ownership"), QDate::currentDate());
     const int t2 = m_db.addTopic(QStringLiteral("Go Goroutines"), QStringLiteral("Channels and select"), QDate::currentDate());
 
@@ -171,7 +173,7 @@ void TestOmacalendar::testSearchFilter() {
     m_db.deleteTopic(t2);
 }
 
-void TestOmacalendar::testDeleteCascade() {
+void TestRepasito::testDeleteCascade() {
     const int topicId = m_db.addTopic(QStringLiteral("Delete Me"), QStringLiteral("Notes"), QDate::currentDate());
     QVERIFY(topicId > 0);
     QCOMPARE(m_db.getAgenda(QStringLiteral("Delete Me")).size(), 3);
@@ -180,7 +182,7 @@ void TestOmacalendar::testDeleteCascade() {
     QCOMPARE(m_db.getAgenda(QStringLiteral("Delete Me")).size(), 0);
 }
 
-void TestOmacalendar::testDeleteCascadeFullLifecycle() {
+void TestRepasito::testDeleteCascadeFullLifecycle() {
     Backend backend;
     const QDate today = QDate::currentDate();
     const QString date1 = today.addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
@@ -345,7 +347,7 @@ void TestOmacalendar::testDeleteCascadeFullLifecycle() {
     QCOMPARE(getDayCount(stripAfterDel, date3), countBefore3);
 }
 
-void TestOmacalendar::testDeleteByReviewId() {
+void TestRepasito::testDeleteByReviewId() {
     Backend backend;
     const QDate today = QDate::currentDate();
     const QString date1 = today.addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
@@ -389,7 +391,7 @@ void TestOmacalendar::testDeleteByReviewId() {
     QCOMPARE(backend.database().getAgenda(topicTitle, date3).size(), 0);
 }
 
-void TestOmacalendar::testDateFilterCadenceAndDeselect() {
+void TestRepasito::testDateFilterCadenceAndDeselect() {
     const QDate today = QDate::currentDate();
     const QString tomorrowStr = today.addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
     const QString day3Str = today.addDays(3).toString(QStringLiteral("yyyy-MM-dd"));
@@ -433,7 +435,7 @@ void TestOmacalendar::testDateFilterCadenceAndDeselect() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testDateFilterTodayWithOverdue() {
+void TestRepasito::testDateFilterTodayWithOverdue() {
     const QDate today = QDate::currentDate();
     const QString todayStr = today.toString(QStringLiteral("yyyy-MM-dd"));
     const QString tomorrowStr = today.addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
@@ -503,7 +505,7 @@ void TestOmacalendar::testDateFilterTodayWithOverdue() {
     m_db.deleteTopic(topicTomorrow);
 }
 
-void TestOmacalendar::testDecoupledSearchAndDateFilter() {
+void TestRepasito::testDecoupledSearchAndDateFilter() {
     const QDate today = QDate::currentDate();
     const QString tomorrowStr = today.addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
 
@@ -576,7 +578,7 @@ void TestOmacalendar::testDecoupledSearchAndDateFilter() {
     m_db.deleteTopic(t3);
 }
 
-void TestOmacalendar::testBackendStateDecoupling() {
+void TestRepasito::testBackendStateDecoupling() {
     Backend backend;
     const QDate today = QDate::currentDate();
     const QString tomorrowStr = today.addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
@@ -628,7 +630,7 @@ void TestOmacalendar::testBackendStateDecoupling() {
     QCOMPARE(backend.selectedDate(), QString());
 }
 
-void TestOmacalendar::testOverdueReviewCompletedAndSnoozedWithDateFilter() {
+void TestRepasito::testOverdueReviewCompletedAndSnoozedWithDateFilter() {
     const QDate today = QDate::currentDate();
     const QString todayStr = today.toString(QStringLiteral("yyyy-MM-dd"));
     const QString tomorrowStr = today.addDays(1).toString(QStringLiteral("yyyy-MM-dd"));
@@ -714,7 +716,7 @@ void TestOmacalendar::testOverdueReviewCompletedAndSnoozedWithDateFilter() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testInvalidAndBoundaryDateFilters() {
+void TestRepasito::testInvalidAndBoundaryDateFilters() {
     const int topicId = m_db.addTopic(QStringLiteral("Boundary Date Topic"), QStringLiteral("Boundary notes"), QDate::currentDate());
     QVERIFY(topicId > 0);
 
@@ -740,7 +742,7 @@ void TestOmacalendar::testInvalidAndBoundaryDateFilters() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testDayToDayNavigation() {
+void TestRepasito::testDayToDayNavigation() {
     Backend backend;
     const QDate today = QDate::currentDate();
     const QString todayStr = today.toString(QStringLiteral("yyyy-MM-dd"));
@@ -818,7 +820,7 @@ void TestOmacalendar::testDayToDayNavigation() {
     QCOMPARE(strip.first().toMap().value(QStringLiteral("date")).toString(), yesterdayStr);
 }
 
-void TestOmacalendar::testPastDateFilterSectionHeader() {
+void TestRepasito::testPastDateFilterSectionHeader() {
     const QDate today = QDate::currentDate();
     const QDate pastDate = today.addDays(-3);
     const QString pastDateStr = pastDate.toString(QStringLiteral("yyyy-MM-dd"));
@@ -867,7 +869,7 @@ void TestOmacalendar::testPastDateFilterSectionHeader() {
     m_db.deleteTopic(topicId);
 }
 
-void TestOmacalendar::testMidnightRolloverNotification() {
+void TestRepasito::testMidnightRolloverNotification() {
     Backend backend;
     QSignalSpy dateChangedSpy(&backend, &Backend::todayDateChanged);
 
@@ -885,7 +887,144 @@ void TestOmacalendar::testMidnightRolloverNotification() {
     QCOMPARE(dateChangedSpy.count(), 1);
 }
 
-void TestOmacalendar::testQmlUiComponentsAndShortcuts() {
+void TestRepasito::testUpdateTopicAndCadenceRecalculation() {
+    Backend backend;
+    const QDate today = QDate::currentDate();
+    const QDate yesterday = today.addDays(-1);
+
+    const int topicId = backend.database().addTopic(
+        QStringLiteral("Module 2: Compute in the Cloud"),
+        QStringLiteral("Initial cloud notes"),
+        yesterday
+    );
+    QVERIFY(topicId > 0);
+    backend.refresh();
+
+    // Verify initial agenda:
+    // Initial date = yesterday
+    // R1: yesterday + 1d = today
+    // R2: yesterday + 3d = today + 2d
+    // R3: yesterday + 5d = today + 4d
+    QVariantList agenda = backend.database().getAgenda(QStringLiteral("Module 2: Compute in the Cloud"));
+    QCOMPARE(agenda.size(), 3);
+
+    QVariantMap r1 = agenda.at(0).toMap();
+    QCOMPARE(r1.value(QStringLiteral("stage")).toInt(), 1);
+    QCOMPARE(r1.value(QStringLiteral("scheduledDate")).toString(), today.toString(QStringLiteral("yyyy-MM-dd")));
+    QCOMPARE(r1.value(QStringLiteral("initialDate")).toString(), yesterday.toString(QStringLiteral("yyyy-MM-dd")));
+    QCOMPARE(r1.value(QStringLiteral("title")).toString(), QStringLiteral("Module 2: Compute in the Cloud"));
+    QCOMPARE(r1.value(QStringLiteral("notes")).toString(), QStringLiteral("Initial cloud notes"));
+
+    // Update topic using backend.updateTopic:
+    // Change date to today, title to "Module 2: Cloud Computing Advanced", notes to "New expanded notes"
+    const QString todayStr = today.toString(QStringLiteral("yyyy-MM-dd"));
+    QVERIFY(backend.updateTopic(topicId, QStringLiteral("Module 2: Cloud Computing Advanced"), QStringLiteral("New expanded notes"), todayStr));
+
+    agenda = backend.database().getAgenda(QStringLiteral("Module 2: Cloud Computing Advanced"));
+    QCOMPARE(agenda.size(), 3);
+
+    // After updating to today:
+    // R1: today + 1d (tomorrow)
+    // R2: today + 3d
+    // R3: today + 5d
+    r1 = agenda.at(0).toMap();
+    QVariantMap r2 = agenda.at(1).toMap();
+    QVariantMap r3 = agenda.at(2).toMap();
+
+    QCOMPARE(r1.value(QStringLiteral("stage")).toInt(), 1);
+    QCOMPARE(r1.value(QStringLiteral("scheduledDate")).toString(), today.addDays(1).toString(QStringLiteral("yyyy-MM-dd")));
+    QCOMPARE(r1.value(QStringLiteral("initialDate")).toString(), todayStr);
+    QCOMPARE(r1.value(QStringLiteral("title")).toString(), QStringLiteral("Module 2: Cloud Computing Advanced"));
+    QCOMPARE(r1.value(QStringLiteral("notes")).toString(), QStringLiteral("New expanded notes"));
+
+    QCOMPARE(r2.value(QStringLiteral("stage")).toInt(), 2);
+    QCOMPARE(r2.value(QStringLiteral("scheduledDate")).toString(), today.addDays(3).toString(QStringLiteral("yyyy-MM-dd")));
+
+    QCOMPARE(r3.value(QStringLiteral("stage")).toInt(), 3);
+    QCOMPARE(r3.value(QStringLiteral("scheduledDate")).toString(), today.addDays(5).toString(QStringLiteral("yyyy-MM-dd")));
+
+    // Clean up
+    backend.database().deleteTopic(topicId);
+}
+
+void TestRepasito::testEditTopicModalAndKeybinding() {
+    Backend backend;
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+    engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
+    QCOMPARE(engine.rootObjects().size(), 1);
+
+    QObject *rootWin = engine.rootObjects().first();
+    QVERIFY(rootWin);
+
+    QObject *agendaView = rootWin->findChild<QObject *>(QStringLiteral("agendaView"));
+    QObject *editTopicModal = rootWin->findChild<QObject *>(QStringLiteral("editTopicModal"));
+    QVERIFY(agendaView);
+    QVERIFY(editTopicModal);
+
+    // Verify modal state property initialized to false
+    QCOMPARE(rootWin->property("isAnyModalOpen").toBool(), false);
+
+    // Add a topic studied yesterday
+    const QDate today = QDate::currentDate();
+    const QDate yesterday = today.addDays(-1);
+    const int topicId = backend.database().addTopic(
+        QStringLiteral("Topic To Edit"),
+        QStringLiteral("Pre-edit notes"),
+        yesterday
+    );
+    QVERIFY(topicId > 0);
+    backend.refresh();
+
+    // Verify child fields in editTopicModal
+    QObject *editTitleField = editTopicModal->findChild<QObject *>(QStringLiteral("editTitleField"));
+    QObject *editDateField = editTopicModal->findChild<QObject *>(QStringLiteral("editDateField"));
+    QObject *editNotesField = editTopicModal->findChild<QObject *>(QStringLiteral("editNotesField"));
+    QObject *editSaveButton = editTopicModal->findChild<QObject *>(QStringLiteral("editSaveButton"));
+    QVERIFY(editTitleField);
+    QVERIFY(editDateField);
+    QVERIFY(editNotesField);
+    QVERIFY(editSaveButton);
+
+    // Invoke openForTopic on editTopicModal
+    QVERIFY(QMetaObject::invokeMethod(editTopicModal, "openForTopic",
+                                      Q_ARG(QVariant, topicId),
+                                      Q_ARG(QVariant, QStringLiteral("Topic To Edit")),
+                                      Q_ARG(QVariant, yesterday.toString(QStringLiteral("yyyy-MM-dd"))),
+                                      Q_ARG(QVariant, QStringLiteral("Pre-edit notes"))));
+
+    QTRY_COMPARE(rootWin->property("isAnyModalOpen").toBool(), true);
+    QCOMPARE(editTitleField->property("text").toString(), QStringLiteral("Topic To Edit"));
+    QCOMPARE(editDateField->property("text").toString(), yesterday.toString(QStringLiteral("yyyy-MM-dd")));
+    QCOMPARE(editNotesField->property("text").toString(), QStringLiteral("Pre-edit notes"));
+
+    // Edit fields: change title, change date to today, change notes
+    const QString newTitle = QStringLiteral("Topic Was Edited");
+    const QString newNotes = QStringLiteral("Post-edit notes\n- Checklist item");
+    const QString todayStr = today.toString(QStringLiteral("yyyy-MM-dd"));
+
+    editTitleField->setProperty("text", newTitle);
+    editDateField->setProperty("text", todayStr);
+    editNotesField->setProperty("text", newNotes);
+
+    // Press save via invoke submit()
+    QVERIFY(QMetaObject::invokeMethod(editTopicModal, "submit"));
+    QTRY_COMPARE(rootWin->property("isAnyModalOpen").toBool(), false);
+
+    // Verify database and agenda updated
+    const QVariantList updatedAgenda = backend.database().getAgenda(newTitle);
+    QCOMPARE(updatedAgenda.size(), 3);
+    const QVariantMap updatedR1 = updatedAgenda.first().toMap();
+    QCOMPARE(updatedR1.value(QStringLiteral("title")).toString(), newTitle);
+    QCOMPARE(updatedR1.value(QStringLiteral("notes")).toString(), newNotes);
+    QCOMPARE(updatedR1.value(QStringLiteral("initialDate")).toString(), todayStr);
+    QCOMPARE(updatedR1.value(QStringLiteral("scheduledDate")).toString(), today.addDays(1).toString(QStringLiteral("yyyy-MM-dd")));
+
+    // Clean up
+    backend.database().deleteTopic(topicId);
+}
+
+void TestRepasito::testQmlUiComponentsAndShortcuts() {
     Backend backend;
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
@@ -995,8 +1134,8 @@ void TestOmacalendar::testQmlUiComponentsAndShortcuts() {
 }
 
 
-void TestOmacalendar::cleanupTestCase() {
+void TestRepasito::cleanupTestCase() {
 }
 
-QTEST_MAIN(TestOmacalendar)
-#include "tst_omacalendar.moc"
+QTEST_MAIN(TestRepasito)
+#include "tst_repasito.moc"

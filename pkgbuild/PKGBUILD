@@ -1,11 +1,11 @@
 # Maintainer: omacom-io
 
-pkgname=omacalendar
+pkgname=repasito
 pkgver=0.1.0
 pkgrel=1
-pkgdesc='Dead-simple spaced repetition review calendar built with Qt Quick and SQLite'
+pkgdesc='Dead-simple spaced repetition review agenda built with Qt Quick and SQLite'
 arch=('x86_64')
-url='https://github.com/Pierorivera1/omacalendar'
+url='https://github.com/Pierorivera1/repasito'
 license=('MIT' 'OFL-1.1')
 depends=('hicolor-icon-theme' 'qt6-base' 'qt6-declarative' 'sqlite' 'xdg-desktop-portal')
 makedepends=('gcc' 'make' 'qt6-base' 'qt6-declarative')
@@ -19,9 +19,9 @@ build() {
 
 package() {
   cd "$startdir/.."
-  /usr/bin/install -Dm755 build/omacalendar "$pkgdir/usr/bin/omacalendar"
+  /usr/bin/install -Dm755 build/repasito "$pkgdir/usr/bin/repasito"
   /usr/bin/install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   /usr/bin/install -Dm644 fonts/OFL.txt "$pkgdir/usr/share/licenses/$pkgname/OFL.txt" 2>/dev/null || true
-  /usr/bin/install -Dm644 "$startdir/omacalendar.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/omacalendar.svg"
-  /usr/bin/install -Dm644 "$startdir/omacalendar.desktop" "$pkgdir/usr/share/applications/omacalendar.desktop"
+  /usr/bin/install -Dm644 "$startdir/repasito.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/repasito.svg"
+  /usr/bin/install -Dm644 "$startdir/repasito.desktop" "$pkgdir/usr/share/applications/repasito.desktop"
 }

@@ -27,10 +27,20 @@ bool Database::init() {
     if (!dir.exists(dataDir)) {
         dir.mkpath(dataDir);
     }
+    m_dbPath = dataDir + QStringLiteral("/repasito.db");
 
-    m_dbPath = dataDir + QStringLiteral("/omacalendar.db");
+    // Seamless migration from legacy omacalendar database if repasito.db doesn't exist yet
+    if (!QFile::exists(m_dbPath)) {
+        const QString legacyPath1 = dataDir + QStringLiteral("/omacalendar.db");
+        const QString legacyPath2 = QDir::homePath() + QStringLiteral("/.local/share/Omacom/omacalendar/omacalendar.db");
+        if (QFile::exists(legacyPath1)) {
+            QFile::copy(legacyPath1, m_dbPath);
+        } else if (QFile::exists(legacyPath2)) {
+            QFile::copy(legacyPath2, m_dbPath);
+        }
+    }
 
-    const QString connectionName = QStringLiteral("omacalendar_%1").arg(reinterpret_cast<quintptr>(this));
+    const QString connectionName = QStringLiteral("repasito_%1").arg(reinterpret_cast<quintptr>(this));
     if (QSqlDatabase::contains(connectionName)) {
         m_db = QSqlDatabase::database(connectionName);
     } else {
@@ -60,10 +70,26 @@ void Database::ensureSchema() {
         "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "  title TEXT NOT NULL,"
         "  notes TEXT DEFAULT '',"
+        "  initial_date TEXT DEFAULT '',"
         "  created_at TEXT NOT NULL,"
         "  status TEXT DEFAULT 'active'"
         ");"
     ));
+
+    // Ensure initial_date column exists for databases created with earlier schema
+    QSqlQuery checkCol(m_db);
+    checkCol.exec(QStringLiteral("PRAGMA table_info(topics);"));
+    bool hasInitialDate = false;
+    while (checkCol.next()) {
+        if (checkCol.value(1).toString() == QStringLiteral("initial_date")) {
+            hasInitialDate = true;
+            break;
+        }
+    }
+    if (!hasInitialDate) {
+        QSqlQuery alterQuery(m_db);
+        alterQuery.exec(QStringLiteral("ALTER TABLE topics ADD COLUMN initial_date TEXT DEFAULT '';"));
+    }
 
     query.exec(QStringLiteral(
         "CREATE TABLE IF NOT EXISTS reviews ("
@@ -92,11 +118,12 @@ int Database::addTopic(const QString &title, const QString &notes, const QDate &
 
     QSqlQuery topicQuery(m_db);
     topicQuery.prepare(QStringLiteral(
-        "INSERT INTO topics (title, notes, created_at, status) "
-        "VALUES (:title, :notes, :created_at, 'active')"
+        "INSERT INTO topics (title, notes, initial_date, created_at, status) "
+        "VALUES (:title, :notes, :initial_date, :created_at, 'active')"
     ));
     topicQuery.bindValue(QStringLiteral(":title"), title.trimmed());
     topicQuery.bindValue(QStringLiteral(":notes"), notes);
+    topicQuery.bindValue(QStringLiteral(":initial_date"), initialDate.toString(QStringLiteral("yyyy-MM-dd")));
     topicQuery.bindValue(QStringLiteral(":created_at"), QDateTime::currentDateTime().toString(Qt::ISODate));
 
     if (!topicQuery.exec()) {
@@ -129,6 +156,60 @@ int Database::addTopic(const QString &title, const QString &notes, const QDate &
 
     m_db.commit();
     return topicId;
+}
+
+bool Database::updateTopic(int topicId, const QString &title, const QString &notes, const QDate &initialDate) {
+    if (topicId <= 0 || title.trimmed().isEmpty())
+        return false;
+
+    if (!m_db.transaction()) {
+        qWarning() << "Failed to begin transaction for updateTopic:" << m_db.lastError().text();
+        return false;
+    }
+
+    QSqlQuery topicQuery(m_db);
+    topicQuery.prepare(QStringLiteral(
+        "UPDATE topics SET title = :title, notes = :notes, initial_date = :initial_date "
+        "WHERE id = :id"
+    ));
+    topicQuery.bindValue(QStringLiteral(":title"), title.trimmed());
+    topicQuery.bindValue(QStringLiteral(":notes"), notes);
+    topicQuery.bindValue(QStringLiteral(":initial_date"), initialDate.toString(QStringLiteral("yyyy-MM-dd")));
+    topicQuery.bindValue(QStringLiteral(":id"), topicId);
+
+    if (!topicQuery.exec()) {
+        qWarning() << "Failed to update topic:" << topicQuery.lastError().text();
+        m_db.rollback();
+        return false;
+    }
+
+    // Update scheduled dates for 3 reviews: +1 day, +3 days, +5 days
+    const int intervals[3] = {1, 3, 5};
+    for (int i = 0; i < 3; ++i) {
+        const QDate reviewDate = initialDate.addDays(intervals[i]);
+        QSqlQuery reviewQuery(m_db);
+        reviewQuery.prepare(QStringLiteral(
+            "UPDATE reviews SET scheduled_date = :scheduled_date "
+            "WHERE topic_id = :topic_id AND review_stage = :stage"
+        ));
+        reviewQuery.bindValue(QStringLiteral(":scheduled_date"), reviewDate.toString(QStringLiteral("yyyy-MM-dd")));
+        reviewQuery.bindValue(QStringLiteral(":topic_id"), topicId);
+        reviewQuery.bindValue(QStringLiteral(":stage"), i + 1);
+
+        if (!reviewQuery.exec()) {
+            qWarning() << "Failed to update review stage" << (i + 1) << ":" << reviewQuery.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+    }
+
+    if (!m_db.commit()) {
+        qWarning() << "Failed to commit transaction for updateTopic:" << m_db.lastError().text();
+        m_db.rollback();
+        return false;
+    }
+
+    return true;
 }
 
 bool Database::completeReview(int reviewId) {
@@ -289,7 +370,7 @@ QVariantList Database::getAgenda(const QString &searchQuery, const QString &date
 
     QString sql = QStringLiteral(
         "SELECT r.id, r.topic_id, r.review_stage, r.scheduled_date, r.completed_at, "
-        "       t.title, t.notes, t.status "
+        "       t.title, t.notes, t.status, t.initial_date "
         "FROM reviews r "
         "JOIN topics t ON r.topic_id = t.id "
     );
@@ -348,10 +429,16 @@ QVariantList Database::getAgenda(const QString &searchQuery, const QString &date
         const QString title = query.value(5).toString();
         const QString notes = query.value(6).toString();
         const QString status = query.value(7).toString();
+        QString initialDateStr = query.value(8).toString();
 
         const bool isCompleted = !completedAtStr.isEmpty();
         const QDate scheduledDate = QDate::fromString(scheduledDateStr, QStringLiteral("yyyy-MM-dd"));
         const bool isOverdue = (!isCompleted && scheduledDate < today);
+
+        if (initialDateStr.isEmpty() && scheduledDate.isValid()) {
+            const int stageOffset = (stage == 1 ? 1 : (stage == 2 ? 3 : 5));
+            initialDateStr = scheduledDate.addDays(-stageOffset).toString(QStringLiteral("yyyy-MM-dd"));
+        }
 
         QString section;
         int sectionOrder = 2; // Default Upcoming
@@ -376,6 +463,7 @@ QVariantList Database::getAgenda(const QString &searchQuery, const QString &date
         item[QStringLiteral("topicId")] = topicId;
         item[QStringLiteral("stage")] = stage;
         item[QStringLiteral("scheduledDate")] = scheduledDateStr;
+        item[QStringLiteral("initialDate")] = initialDateStr;
         item[QStringLiteral("formattedDate")] = scheduledDate.toString(QStringLiteral("MMM d"));
         item[QStringLiteral("completedAt")] = completedAtStr;
         item[QStringLiteral("title")] = title;

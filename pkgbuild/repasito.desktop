@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Repasito
+GenericName=Spaced Repetition Review Agenda
+Comment=Dead-simple spaced-repetition review agenda
+Exec=repasito %f
+Icon=repasito
+Terminal=false
+Categories=Office;Calendar;Education;Utility;
+Keywords=calendar;spaced;repetition;learning;review;agenda;repasito;
+StartupWMClass=repasito

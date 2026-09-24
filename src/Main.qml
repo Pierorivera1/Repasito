@@ -6,7 +6,7 @@ import QtQuick.Window
 
 ApplicationWindow {
     id: window
-    title: "Omacalendar"
+    title: "Repasito"
     width: 600
     height: 740
     minimumWidth: 440
@@ -37,7 +37,7 @@ ApplicationWindow {
                                    window.visibility === Window.Maximized);
     }
 
-    readonly property bool isAnyModalOpen: addTopicModal.visible || editNotesModal.visible || deleteConfirmDialog.visible
+    readonly property bool isAnyModalOpen: addTopicModal.visible || editTopicModal.visible || editNotesModal.visible || deleteConfirmDialog.visible
 
     // Keyboard Shortcuts
     Shortcut {
@@ -101,6 +101,16 @@ ApplicationWindow {
         }
     }
     Shortcut {
+        sequence: "I"
+        enabled: !searchField.activeFocus && !isAnyModalOpen && agendaView.currentItem !== null
+        onActivated: {
+            var item = agendaView.model[agendaView.currentIndex];
+            if (item) {
+                editTopicModal.openForTopic(item.topicId, item.title, item.initialDate, item.notes);
+            }
+        }
+    }
+    Shortcut {
         sequence: "D"
         enabled: !searchField.activeFocus && !isAnyModalOpen && agendaView.currentItem !== null
         onActivated: {
@@ -139,7 +149,7 @@ ApplicationWindow {
                 spacing: 2
 
                 Text {
-                    text: "Omacalendar"
+                    text: "Repasito"
                     font.family: "iA Writer Mono S"
                     font.pixelSize: 18
                     font.bold: true
@@ -420,6 +430,9 @@ ApplicationWindow {
                     onSnoozeRequested: function(reviewId) {
                         backend.snoozeReview(reviewId, 1);
                     }
+                    onEditRequested: function(topicId, title, initialDate, notes) {
+                        editTopicModal.openForTopic(topicId, title, initialDate, notes);
+                    }
                     onEditNotesRequested: function(topicId, notes) {
                         editNotesModal.openForTopic(topicId, notes);
                     }
@@ -588,7 +601,7 @@ ApplicationWindow {
             spacing: 12
 
             Text {
-                text: "Shortcuts: [N] Add topic   [/] Search   [H/L] Day   [J/K] Navigate   [D] Delete   [Space] Complete"
+                text: "Shortcuts: [N] Add topic   [/] Search   [H/L] Day   [J/K] Navigate   [I] Edit   [D] Delete   [Space] Complete"
                 font.family: "iA Writer Mono S"
                 font.pixelSize: 10
                 color: backend.themeMuted
@@ -609,6 +622,12 @@ ApplicationWindow {
     AddTopicModal {
         id: addTopicModal
         objectName: "addTopicModal"
+    }
+
+    // Edit Topic Modal
+    EditTopicModal {
+        id: editTopicModal
+        objectName: "editTopicModal"
     }
 
     // Edit Notes Modal

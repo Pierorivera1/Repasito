@@ -62,6 +62,7 @@ public:
     QString todayDateIso() const;
 
     Q_INVOKABLE bool addTopic(const QString &title, const QString &notes, const QString &initialDateIso);
+    Q_INVOKABLE bool updateTopic(int topicId, const QString &title, const QString &notes, const QString &initialDateIso);
     Q_INVOKABLE bool toggleReview(int reviewId, bool completed);
     Q_INVOKABLE bool snoozeReview(int reviewId, int days = 1);
     Q_INVOKABLE bool updateNotes(int topicId, const QString &notes);

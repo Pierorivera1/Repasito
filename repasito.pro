@@ -1,7 +1,7 @@
 QT += core gui qml quick quickcontrols2 dbus sql
 
 CONFIG += c++17 release
-TARGET = omacalendar
+TARGET = repasito
 TEMPLATE = app
 
 HEADERS += \

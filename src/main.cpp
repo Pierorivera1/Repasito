@@ -15,9 +15,9 @@
 
 int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
-    app.setApplicationName(QStringLiteral("omacalendar"));
-    app.setDesktopFileName(QStringLiteral("omacalendar"));
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("omacalendar")));
+    app.setApplicationName(QStringLiteral("repasito"));
+    app.setDesktopFileName(QStringLiteral("repasito"));
+    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("repasito")));
 
     QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/iAWriterMonoS-Regular.ttf"));
     QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/iAWriterMonoS-Bold.ttf"));
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
     if (engine.rootObjects().isEmpty()) {
-        qCritical() << "Could not load the Omacalendar interface; resource available:"
+        qCritical() << "Could not load the Repasito interface; resource available:"
                     << QFile::exists(QStringLiteral(":/Main.qml"));
         return -1;
     }

@@ -1,4 +1,4 @@
-# Omacalendar
+# Repasito
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/)
@@ -8,13 +8,13 @@
 
 A dead-simple, distraction-free spaced-repetition review agenda built with **Qt 6 Quick** and **C++**. Designed for technical learners and developers who want a fast, keyboard-first review workflow without heavy web frameworks, account logins, or background daemons.
 
-Omacalendar automatically synchronizes with your system's dark/light appearance and follows your active **Omarchy** desktop theme.
+Repasito automatically synchronizes with your system's dark/light appearance and follows your active **Omarchy** desktop theme.
 
 ---
 
 ## The Spaced Repetition Cadence
 
-Whenever you study a new module, chapter, or topic, Omacalendar automatically schedules three spaced checkpoints to lock knowledge into long-term memory:
+Whenever you study a new module, chapter, or topic, Repasito automatically schedules three spaced checkpoints to lock knowledge into long-term memory:
 
 ```text
  Study Day (Day 0)
@@ -32,7 +32,7 @@ Checking off the final **R3** review completes the topic and archives it.
 
 ## Key Features
 
-- **Automated Review Cadence**: Enter a topic once; Omacalendar calculates and tracks R1, R2, and R3 review dates automatically.
+- **Automated Review Cadence**: Enter a topic once; Repasito calculates and tracks R1, R2, and R3 review dates automatically.
 - **Overdue Rollover**: Any missed review dates automatically roll into today's agenda with an amber `Overdue` pill, ensuring backlogs are never forgotten.
 - **7-Day Mini-Calendar Strip**: Instant weekly overview displaying daily review counts. Click any day to isolate its schedule, or view your full chronological agenda.
 - **Decoupled Search & Filtering**: Type `/` to search across topic titles and notes independently from your selected calendar day.
@@ -69,8 +69,8 @@ Checking off the final **R3** review completes the topic and archives it.
 Clone the repository to your machine and navigate into the directory:
 
 ```bash
-git clone https://github.com/Pierorivera1/omacalendar.git
-cd omacalendar
+git clone https://github.com/Pierorivera1/repasito.git
+cd repasito
 ```
 
 ---
@@ -89,7 +89,7 @@ Ensure you have `git`, `base-devel`, and the required Qt 6 development libraries
 ### 3. Build & Install
 
 #### Method A: Install as an Arch Package (Recommended)
-This compiles the application, installs the binary to `/usr/bin/omacalendar`, registers the desktop shortcut, and associates the application icon via `makepkg` and `pacman`:
+This compiles the application, installs the binary to `/usr/bin/repasito`, registers the desktop shortcut, and associates the application icon via `makepkg` and `pacman`:
 
 ```bash
 ./bin/install
@@ -104,7 +104,7 @@ If you just want to compile and run the application directly from the folder:
 
 ```bash
 ./bin/build
-./build/omacalendar
+./build/repasito
 ```
 
 ---
@@ -122,16 +122,16 @@ Or run step-by-step:
 ```bash
 mkdir -p build
 cd build
-qmake6 ../omacalendar.pro
+qmake6 ../repasito.pro
 make -j$(nproc)
-./omacalendar
+./repasito
 ```
 
 ---
 
 ### Running the Test Suite
 
-Omacalendar includes an automated test suite verifying SQLite operations, spaced repetition cadences, search/filter decoupling, and UI shortcuts:
+Repasito includes an automated test suite verifying SQLite operations, spaced repetition cadences, search/filter decoupling, and UI shortcuts:
 
 ```bash
 ./bin/test
@@ -142,7 +142,7 @@ Omacalendar includes an automated test suite verifying SQLite operations, spaced
 ## Architecture & Storage
 
 ```text
-omacalendar/
+repasito/
 ├── bin/                 # Build, test, and install helper scripts
 ├── fonts/               # Bundled iA Writer Mono font assets
 ├── pkgbuild/            # Arch Linux PKGBUILD, desktop file, SVG icon
@@ -164,9 +164,9 @@ omacalendar/
 
 - **Database**: SQLite database stored locally at:
   ```text
-  ~/.local/share/Omacom/omacalendar/omacalendar.db
+  ~/.local/share/Omacom/repasito/repasito.db
   ```
-- **Geometry & Window State**: Automatically restored via `QSettings` at `~/.config/omacalendar/omacalendar.conf`.
+- **Geometry & Window State**: Automatically restored via `QSettings` at `~/.config/repasito/repasito.conf`.
 - **Theme Source**: Monitored via file watcher at:
   ```text
   ~/.local/state/omarchy/current/theme/colors.toml

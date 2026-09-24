@@ -18,6 +18,7 @@ Rectangle {
 
     signal reviewToggled(int reviewId, bool completed)
     signal snoozeRequested(int reviewId)
+    signal editRequested(int topicId, string title, string initialDate, string notes)
     signal editNotesRequested(int topicId, string currentNotes)
     signal deleteRequested(int topicId, string topicTitle)
     signal clicked()
@@ -162,7 +163,7 @@ Rectangle {
                     }
                 }
 
-                // Edit Notes Button
+                // Edit Topic Button
                 Button {
                     text: "✎"
                     flat: true
@@ -171,9 +172,11 @@ Rectangle {
                     font.pixelSize: 12
                     Material.foreground: backend.themeMuted
                     ToolTip.visible: hovered
-                    ToolTip.text: "View / edit notes"
+                    ToolTip.text: "Edit topic (I)"
                     onClicked: {
-                        if (itemData) root.editNotesRequested(itemData.topicId, itemData.notes);
+                        if (itemData) {
+                            root.editRequested(itemData.topicId, itemData.title || "", itemData.initialDate || "", itemData.notes || "");
+                        }
                     }
                 }
 
